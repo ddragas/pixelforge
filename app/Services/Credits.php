@@ -31,10 +31,17 @@ class Credits
         $this->move($this->lock($generation->user_id), CreditTransaction::GENERATION, -$amount, $generation);
     }
 
-    /** Balance minus what is set aside for generations still running. */
+    /**
+     * Balance minus what is set aside for generations still running.
+     *
+     * The balance is read from the database, not from the model in hand,
+     * which may have been loaded before the last purchase or charge.
+     */
     public function available(User $user): int
     {
-        return $user->balance - (int) $user->generations()->unfinished()->sum('reserved');
+        $balance = (int) User::query()->whereKey($user->getKey())->value('balance');
+
+        return $balance - (int) $user->generations()->unfinished()->sum('reserved');
     }
 
     /** Read the user afresh and hold their row until the transaction ends. */

@@ -16,11 +16,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('dashboard', '/generate')->name('dashboard');
 
     Route::get('generate', [GenerationController::class, 'create'])->name('generations.create');
-    Route::post('generations/estimate', [GenerationController::class, 'estimate'])->name('generations.estimate');
-    Route::post('generations', [GenerationController::class, 'store'])->name('generations.store');
+    // The price preview is asked for on every keystroke pause; submitting and buying are not.
+    Route::post('generations/estimate', [GenerationController::class, 'estimate'])->middleware('throttle:estimates')->name('generations.estimate');
+    Route::post('generations', [GenerationController::class, 'store'])->middleware('throttle:generations')->name('generations.store');
     Route::get('history', [GenerationController::class, 'index'])->name('generations.index');
 
-    Route::post('credits', [CreditController::class, 'store'])->name('credits.store');
+    Route::post('credits', [CreditController::class, 'store'])->middleware('throttle:generations')->name('credits.store');
 
     Route::get('admin/report', ReportController::class)->middleware(EnsureOperator::class)->name('admin.report');
 });

@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Named, and keyed by user, so one user's requests never count against another's.
+        RateLimiter::for('generations', fn (Request $request) => Limit::perMinute(20)->by('generations:'.$request->user()?->id));
+        RateLimiter::for('estimates', fn (Request $request) => Limit::perMinute(120)->by('estimates:'.$request->user()?->id));
     }
 }

@@ -116,6 +116,7 @@ trait Pixelforge
 
         return $this->call('POST', '/webhooks/pixelforge', server: [
             'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
             'HTTP_PIXELFORGE_SIGNATURE' => "t={$timestamp},v1={$signature}",
             'HTTP_PIXELFORGE_EVENT_ID' => $eventId,
         ], content: $body);
