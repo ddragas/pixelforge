@@ -32,10 +32,12 @@ class ReportController extends Controller
             ->where('status', GenerationStatus::Succeeded)
             ->where('completed_at', '>=', $start)
             ->get(['id', 'user_id', 'provider_cost', 'charged', 'completed_at'])
-            ->groupBy(fn (Generation $generation) => $generation->completed_at->utc()->toDateString());
+            ->groupBy(fn (Generation $generation): string => ($generation->completed_at ?? $generation->updated_at)->utc()->toDateString());
 
         try {
-            $reported = collect($pixelforge->usage($start->toDateString(), $end->toDateString())['data'])->keyBy('date');
+            /** @var list<array<string, mixed>> $usage */
+            $usage = $pixelforge->usage($start->toDateString(), $end->toDateString())['data'];
+            $reported = collect($usage)->keyBy('date');
             $usageError = null;
         } catch (PixelforgeException $exception) {
             $reported = collect();

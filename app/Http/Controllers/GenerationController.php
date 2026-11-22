@@ -40,7 +40,7 @@ class GenerationController extends Controller
             'maxPromptLength' => config('pixelforge.max_prompt_length'),
             'creditPacks' => config('pixelforge.credit_packs'),
             'markupPercent' => config('pixelforge.markup_percent'),
-            'recent' => GenerationResource::collection($request->user()->generations()->latest()->limit(3)->get())->resolve(),
+            'recent' => GenerationResource::collection($this->currentUser($request)->generations()->latest()->limit(3)->get())->resolve(),
         ]);
     }
 
@@ -53,7 +53,7 @@ class GenerationController extends Controller
             'lowest' => Money::toDecimal($estimate->lowest),
             'expected' => Money::toDecimal($estimate->expected),
             'highest' => Money::toDecimal($estimate->highest),
-            'affordable' => $this->credits->available($request->user()) >= $estimate->highest,
+            'affordable' => $this->credits->available($this->currentUser($request)) >= $estimate->highest,
         ]);
     }
 
@@ -64,7 +64,7 @@ class GenerationController extends Controller
         $generation = DB::transaction(function () use ($request, $estimate) {
             // Locking the user makes two submissions at once queue up here,
             // so both cannot spend the same credit.
-            $user = $this->credits->lock($request->user());
+            $user = $this->credits->lock($this->currentUser($request));
 
             if ($this->credits->available($user) < $estimate->highest) {
                 throw ValidationException::withMessages([
@@ -94,7 +94,7 @@ class GenerationController extends Controller
     /** History, with live status: the page asks again every few seconds while anything is running. */
     public function index(Request $request): Response
     {
-        $generations = $request->user()->generations()->latest()->paginate(12);
+        $generations = $this->currentUser($request)->generations()->latest()->paginate(12);
 
         return Inertia::render('History', [
             'generations' => GenerationResource::collection($generations->items())->resolve(),
@@ -103,7 +103,7 @@ class GenerationController extends Controller
                 'last' => $generations->lastPage(),
                 'total' => $generations->total(),
             ],
-            'running' => $request->user()->generations()->unfinished()->exists(),
+            'running' => $this->currentUser($request)->generations()->unfinished()->exists(),
         ]);
     }
 

@@ -17,7 +17,7 @@ class CreditController extends Controller
             'dollars' => ['required', 'integer', Rule::in(config('pixelforge.credit_packs'))],
         ]);
 
-        $credits->purchase($request->user(), $validated['dollars'] * Money::NANOS_PER_DOLLAR);
+        $credits->purchase($this->currentUser($request), $validated['dollars'] * Money::NANOS_PER_DOLLAR);
 
         return back();
     }

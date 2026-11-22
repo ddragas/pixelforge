@@ -33,7 +33,7 @@ class ReconcileGenerations extends Command
 
         foreach ($stale as $generation) {
             try {
-                $lifecycle->apply($pixelforge->generation($generation->provider_id));
+                $lifecycle->apply($pixelforge->generation((string) $generation->provider_id));
             } catch (PixelforgeException $exception) {
                 $this->warn("{$generation->provider_id}: {$exception->getMessage()}");
 

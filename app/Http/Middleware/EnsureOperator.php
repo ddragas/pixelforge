@@ -10,7 +10,7 @@ class EnsureOperator
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->is_operator, 403);
+        abort_unless($request->user()?->is_operator === true, 403);
 
         return $next($request);
     }

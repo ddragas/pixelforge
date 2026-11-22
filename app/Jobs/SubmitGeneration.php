@@ -34,7 +34,7 @@ class SubmitGeneration implements ShouldQueue
 
     public function retryUntil(): DateTimeInterface
     {
-        return $this->generation->created_at->addMinutes(config('pixelforge.submit_within_minutes'));
+        return $this->generation->created_at->copy()->addMinutes((int) config('pixelforge.submit_within_minutes'));
     }
 
     public function handle(PixelforgeClient $pixelforge, GenerationLifecycle $lifecycle): void

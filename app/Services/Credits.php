@@ -28,7 +28,7 @@ class Credits
      */
     public function charge(Generation $generation, int $amount): void
     {
-        $this->move($this->lock($generation->user), CreditTransaction::GENERATION, -$amount, $generation);
+        $this->move($this->lock($generation->user_id), CreditTransaction::GENERATION, -$amount, $generation);
     }
 
     /** Balance minus what is set aside for generations still running. */
@@ -37,9 +37,10 @@ class Credits
         return $user->balance - (int) $user->generations()->unfinished()->sum('reserved');
     }
 
-    public function lock(User $user): User
+    /** Read the user afresh and hold their row until the transaction ends. */
+    public function lock(User|int $user): User
     {
-        return User::whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+        return User::query()->whereKey($user instanceof User ? $user->getKey() : $user)->lockForUpdate()->firstOrFail();
     }
 
     private function move(User $user, string $type, int $amount, ?Generation $generation = null): void

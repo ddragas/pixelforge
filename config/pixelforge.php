@@ -15,7 +15,7 @@ return [
     'markup_percent' => 25,
 
     // How long a generation may wait to be accepted by Pixelforge before we give up on it.
-    'submit_within_minutes' => 15,
+    'submit_within_minutes' => 5,
 
     'sizes' => ['1024x1024', '1536x1024', '1024x1536'],
     'qualities' => ['low', 'medium', 'high'],

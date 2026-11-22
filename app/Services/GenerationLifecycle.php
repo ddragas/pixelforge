@@ -89,7 +89,7 @@ class GenerationLifecycle
     /** @param  array<string, mixed>  $remote */
     private function succeed(Generation $generation, array $remote): void
     {
-        $providerCost = $this->calculator->providerCost($remote['usage'], $generation->rates);
+        $providerCost = $this->calculator->providerCost($remote['usage'], $generation->rates ?? $remote['rates']);
         $charged = $this->calculator->userPrice($providerCost);
 
         $generation->fill([

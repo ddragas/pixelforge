@@ -3,7 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property string $id
+ * @property string $type
+ * @property array<string, mixed> $payload
+ * @property Carbon|null $processed_at
+ */
 class WebhookEvent extends Model
 {
     public $incrementing = false;
