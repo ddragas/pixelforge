@@ -2,20 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\GenerationStatus;
 use App\Http\Requests\GenerationRequest;
 use App\Http\Resources\GenerationResource;
 use App\Jobs\SubmitGeneration;
-use App\Pixelforge\CostCalculator;
-use App\Pixelforge\Estimate;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\Pricing;
-use App\Services\Credits;
+use App\Services\GenerationOrders;
+use App\Services\InsufficientCredit;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,8 +21,7 @@ class GenerationController extends Controller
 {
     public function __construct(
         private readonly PixelforgeClient $pixelforge,
-        private readonly CostCalculator $calculator,
-        private readonly Credits $credits,
+        private readonly GenerationOrders $orders,
     ) {}
 
     /** The page with the form. */
@@ -48,44 +44,36 @@ class GenerationController extends Controller
     /** What the request in the form would cost, shown before the user submits. */
     public function estimate(GenerationRequest $request): JsonResponse
     {
-        $estimate = $this->estimateFor($request);
+        $estimate = $this->orders->estimate(
+            $request->validated('prompt'),
+            $request->validated('size'),
+            $request->validated('quality'),
+            count($request->referenceImages()),
+        );
 
         return response()->json([
             'lowest' => Money::toDecimal($estimate->lowest),
             'expected' => Money::toDecimal($estimate->expected),
             'highest' => Money::toDecimal($estimate->highest),
-            'affordable' => $this->credits->available($this->currentUser($request)) >= $estimate->highest,
+            'affordable' => $this->orders->affordable($this->currentUser($request), $estimate),
         ]);
     }
 
     public function store(GenerationRequest $request): RedirectResponse
     {
-        $estimate = $this->estimateFor($request);
-
-        $generation = DB::transaction(function () use ($request, $estimate) {
-            // Locking the user makes two submissions at once queue up here,
-            // so both cannot spend the same credit.
-            $user = $this->credits->lock($this->currentUser($request));
-
-            if ($this->credits->available($user) < $estimate->highest) {
-                throw ValidationException::withMessages([
-                    'credit' => 'You need at least $'.Money::toDecimal($estimate->highest).' of free credit for this image. Buy credits to continue.',
-                ]);
-            }
-
-            // The most it can cost is set aside now and settled to the real cost when it finishes.
-            return $user->generations()->create([
-                'prompt' => $request->validated('prompt'),
-                'size' => $request->validated('size'),
-                'quality' => $request->validated('quality'),
-                'reference_images' => $request->referenceImages(),
-                'status' => GenerationStatus::Pending,
-                'estimated_lowest' => $estimate->lowest,
-                'estimated_expected' => $estimate->expected,
-                'estimated_highest' => $estimate->highest,
-                'reserved' => $estimate->highest,
+        try {
+            $generation = $this->orders->place(
+                $this->currentUser($request),
+                $request->validated('prompt'),
+                $request->validated('size'),
+                $request->validated('quality'),
+                $request->referenceImages(),
+            );
+        } catch (InsufficientCredit $exception) {
+            throw ValidationException::withMessages([
+                'credit' => 'You need at least $'.Money::toDecimal($exception->needed).' of free credit for this image. Buy credits to continue.',
             ]);
-        });
+        }
 
         dispatch(new SubmitGeneration($generation));
 
@@ -106,16 +94,5 @@ class GenerationController extends Controller
             ],
             'running' => $this->currentUser($request)->generations()->unfinished()->exists(),
         ]);
-    }
-
-    private function estimateFor(GenerationRequest $request): Estimate
-    {
-        return $this->calculator->estimate(
-            $request->validated('prompt'),
-            $request->validated('size'),
-            $request->validated('quality'),
-            count($request->referenceImages()),
-            $this->pixelforge->pricing(),
-        );
     }
 }

@@ -99,7 +99,7 @@ it('never estimates the lowest above the expected, or the expected above the hig
 it('asks Pixelforge for usage between the two dates given', function (): void {
     Http::fake(['*/v1/usage*' => Http::response(['object' => 'usage', 'data' => []])]);
 
-    app(PixelforgeClient::class)->usage('2026-11-01', '2026-11-22');
+    resolve(PixelforgeClient::class)->usage('2026-11-01', '2026-11-22');
 
     Http::assertSent(fn (Request $request): bool => $request->method() === 'GET'
         && $request->hasHeader('Authorization', 'Bearer pf_test')
@@ -109,7 +109,7 @@ it('asks Pixelforge for usage between the two dates given', function (): void {
 
 it('falls back on the last prices it knew when Pixelforge cannot be reached', function (): void {
     Http::fake(['*/v1/pricing' => Http::sequence()->push($this->pricing())->push('', 503)]);
-    $client = app(PixelforgeClient::class);
+    $client = resolve(PixelforgeClient::class);
 
     $first = $client->pricing();
     Cache::forget('pixelforge.pricing'); // as if the minute had passed
@@ -122,14 +122,14 @@ it('falls back on the last prices it knew when Pixelforge cannot be reached', fu
 it('says so when it has never known the prices and Pixelforge cannot be reached', function (): void {
     Http::fake(['*/v1/pricing' => Http::response('', 503)]);
 
-    app(PixelforgeClient::class)->pricing();
+    resolve(PixelforgeClient::class)->pricing();
 })->throws(PixelforgeException::class);
 
 it('turns each kind of refusal into an error the rest of the code can act on', function (int $status, mixed $body, array $headers, string $code, string $message, bool $retry, ?int $retryAfter): void {
     Http::fake(['*/v1/generations/*' => Http::response($body, $status, $headers)]);
 
     try {
-        app(PixelforgeClient::class)->generation('gen_01TEST');
+        resolve(PixelforgeClient::class)->generation('gen_01TEST');
         $this->fail('No exception was thrown.');
     } catch (PixelforgeException $exception) {
         expect($exception->errorCode)->toBe($code)

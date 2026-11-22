@@ -47,7 +47,7 @@ it('sends Pixelforge exactly what the user asked for, with our id as the idempot
         'reference_images' => ['https://example.com/a.png', 'https://example.com/b.png'],
     ]);
 
-    SubmitGeneration::dispatchSync($generation);
+    dispatch_sync(new SubmitGeneration($generation));
 
     Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
         && $request->header('Idempotency-Key') === [$generation->id]
@@ -65,7 +65,7 @@ it('raises the alarm when Pixelforge rejects our API key, and only then', functi
     Http::fake(['*/v1/generations' => Http::response(['error' => ['code' => $code, 'message' => 'No.']], $status)]);
     $generation = Generation::factory()->for(User::factory()->create())->create();
 
-    SubmitGeneration::dispatchSync($generation);
+    dispatch_sync(new SubmitGeneration($generation));
 
     expect($generation->refresh()->status)->toBe(GenerationStatus::Failed);
     $alarm ? Log::shouldHaveReceived('critical')->once() : Log::shouldNotHaveReceived('critical');
@@ -78,7 +78,7 @@ it('does not send a generation twice when the job runs again after it was accept
     Http::fake();
     $generation = Generation::factory()->for(User::factory()->create())->queued()->create();
 
-    SubmitGeneration::dispatchSync($generation);
+    dispatch_sync(new SubmitGeneration($generation));
 
     Http::assertNothingSent();
 });
@@ -89,7 +89,7 @@ it('marks a webhook event as dealt with once it has been applied', function (): 
         'id' => 'evt_1', 'data' => ['object' => $this->remoteGeneration('succeeded')],
     ]]);
 
-    ProcessWebhookEvent::dispatchSync($event);
+    dispatch_sync(new ProcessWebhookEvent($event));
 
     expect($event->refresh()->processed_at)->not->toBeNull()
         ->and($generation->refresh()->status)->toBe(GenerationStatus::Succeeded);
@@ -99,7 +99,7 @@ it('marks an event that is not about a generation as dealt with, and touches not
     $generation = Generation::factory()->for(User::factory()->create())->queued()->create();
     $event = WebhookEvent::create(['id' => 'evt_2', 'type' => 'ping', 'payload' => ['id' => 'evt_2', 'data' => ['object' => ['object' => 'ping']]]]);
 
-    ProcessWebhookEvent::dispatchSync($event);
+    dispatch_sync(new ProcessWebhookEvent($event));
 
     expect($event->refresh()->processed_at)->not->toBeNull()
         ->and($generation->refresh()->status)->toBe(GenerationStatus::Queued);
