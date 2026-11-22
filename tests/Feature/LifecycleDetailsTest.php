@@ -324,5 +324,10 @@ describe('rate limits', function (): void {
         }
 
         $this->actingAs($this->user)->postJson('/generations/estimate', $request)->assertTooManyRequests();
+        // Somebody else is not held back by it, and neither is this user's own submitting.
+        $this->actingAs(User::factory()->create())->postJson('/generations/estimate', $request)->assertOk();
+        Queue::fake();
+        $this->user->forceFill(['balance' => 5_000_000_000])->save();
+        $this->actingAs($this->user)->post('/generations', $request)->assertSessionHasNoErrors()->assertRedirect();
     });
 });

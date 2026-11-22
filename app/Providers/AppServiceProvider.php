@@ -24,8 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Named, and keyed by user, so one user's requests never count against another's.
-        RateLimiter::for('generations', fn (Request $request) => Limit::perMinute(20)->by('generations:'.$request->user()?->id));
-        RateLimiter::for('estimates', fn (Request $request) => Limit::perMinute(120)->by('estimates:'.$request->user()?->id));
+        // Each limiter has its own name and counts per user, so one user's requests never count against another's.
+        RateLimiter::for('generations', fn (Request $request) => Limit::perMinute(20)->by($request->user()?->id));
+        RateLimiter::for('estimates', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id));
     }
 }
