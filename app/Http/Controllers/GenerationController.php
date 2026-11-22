@@ -30,6 +30,9 @@ class GenerationController extends Controller
     /** The page with the form. */
     public function create(Request $request): Response
     {
+        // Fetch the prices now, so the first price the user sees does not wait for Pixelforge.
+        rescue(fn () => $this->pixelforge->pricing(), report: false);
+
         return Inertia::render('Generate', [
             'sizes' => config('pixelforge.sizes'),
             'qualities' => config('pixelforge.qualities'),

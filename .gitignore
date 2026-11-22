@@ -22,3 +22,6 @@ yarn-error.log
 /.vscode
 /.zed
 /storage/run
+/storage/tunnel.*
+/tunnel.sh
+/run-dev.sh
