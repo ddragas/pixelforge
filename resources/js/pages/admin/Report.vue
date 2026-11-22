@@ -33,7 +33,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: "Operators' report", href: '/adm
     <Head title="Operators' report" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-4">
+        <div class="flex min-w-0 flex-col gap-6 p-4">
             <div>
                 <h1 class="text-xl font-semibold">Spend, cost and profit</h1>
                 <p class="text-sm text-neutral-500">
@@ -70,7 +70,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: "Operators' report", href: '/adm
             </p>
 
             <div v-else class="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                <table class="w-full text-left text-sm">
+                <table class="w-full min-w-[44rem] text-left text-sm">
                     <thead class="bg-neutral-50 text-xs uppercase text-neutral-500 dark:bg-neutral-900">
                         <tr>
                             <th class="px-4 py-3">Day (UTC) / user</th>
