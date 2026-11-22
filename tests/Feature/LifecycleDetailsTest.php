@@ -205,6 +205,30 @@ describe('what the pages are given', function (): void {
             ->and($props['running'])->toBeTrue();
     });
 
+    it('does not call the page "running" for generations that have ended, whichever way', function (GenerationStatus $status, bool $running): void {
+        Generation::factory()->for($this->user)->queued()->create(['status' => $status, 'reserved' => 0]);
+
+        expect($this->actingAs($this->user)->get('/history')->inertiaPage()['props']['running'])->toBe($running);
+    })->with([
+        [GenerationStatus::Pending, true],
+        [GenerationStatus::Queued, true],
+        [GenerationStatus::Processing, true],
+        [GenerationStatus::Succeeded, false],
+        [GenerationStatus::Failed, false],
+    ]);
+
+    it('counts credit as set aside only while a generation is still running', function (GenerationStatus $status, string $available): void {
+        // "reserved" is cleared when a generation ends; this guards the case where it was not.
+        Generation::factory()->for($this->user)->queued()->create(['status' => $status]);
+        $this->fakePricing();
+
+        expect($this->actingAs($this->user)->get('/generate')->inertiaPage()['props']['credit']['available'])->toBe($available);
+    })->with([
+        [GenerationStatus::Processing, '0.913750000'],
+        [GenerationStatus::Succeeded, '1.000000000'],
+        [GenerationStatus::Failed, '1.000000000'],
+    ]);
+
     it('shows twelve generations a page, newest first', function (): void {
         foreach (range(1, 13) as $minute) {
             Generation::factory()->for($this->user)->create(['prompt' => "Image {$minute}", 'created_at' => now()->subHour()->addMinutes($minute)]);

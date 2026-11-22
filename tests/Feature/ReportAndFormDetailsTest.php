@@ -145,6 +145,7 @@ describe('what the form accepts', function (): void {
         expect(Generation::count())->toBe(0);
     })->with([
         'no prompt' => [['prompt' => ''], 'prompt'],
+        'reference images given as a short piece of text' => [['reference_images' => 'abc'], 'reference_images'],
         'a prompt that is not text' => [['prompt' => ['a', 'b']], 'prompt'],
         'a prompt one character too long' => [fn () => ['prompt' => str_repeat('a', config('pixelforge.max_prompt_length') + 1)], 'prompt'],
         'no size' => [['size' => ''], 'size'],
@@ -157,6 +158,16 @@ describe('what the form accepts', function (): void {
         'a reference image that is not an address' => [['reference_images' => ['not a url']], 'reference_images.0'],
         'a reference image address that is far too long' => [['reference_images' => ['https://example.com/'.str_repeat('a', 2000)]], 'reference_images.0'],
     ]);
+
+    it('refuses a request with a field left out altogether', function (string $field): void {
+        $request = $this->valid;
+        unset($request[$field]);
+
+        $this->actingAs($this->user)->post('/generations', $request)->assertSessionHasErrors($field);
+        $this->actingAs($this->user)->postJson('/generations/estimate', $request)->assertJsonValidationErrors($field);
+
+        expect(Generation::count())->toBe(0);
+    })->with(['prompt', 'size', 'quality']);
 
     it('accepts the longest prompt and the most reference images allowed', function (): void {
         $images = array_fill(0, config('pixelforge.max_reference_images'), 'https://example.com/a.png');

@@ -66,6 +66,19 @@ it('rounds the text range outwards: down for the lowest price, up for the highes
         ->and($estimate->highest)->toBe(22_375_000); // + 90 text (450,000) + 500 reasoning (6,250,000) = 17,900,000, x 1.25
 });
 
+it('reads the published variance as whole percent', function (float $variance, int $lowest, int $highest): void {
+    // 400 characters = 100 text tokens; low quality: 280 output tokens (11,200,000) and 0 to 500 reasoning tokens.
+    $estimate = (new CostCalculator)->estimate(str_repeat('a', 400), '1024x1024', 'low', 0, pricingWith(['text_token_variance' => $variance], $this->pricing()));
+
+    expect($estimate->lowest)->toBe($lowest)->and($estimate->highest)->toBe($highest);
+})->with([
+    // 0.14 x 100 is 14.000000000000002 in floating point: it must still mean 14 %, so 86 to 114 text tokens.
+    '14 %' => [0.14, 14_537_500, 22_525_000],   // 11,630,000 x 1.25 and (11,200,000 + 570,000 + 6,250,000) x 1.25
+    // 60 %: 40 to 160 text tokens.
+    '60 %' => [0.60, 14_250_000, 22_812_500],   // 11,400,000 x 1.25 and (11,200,000 + 800,000 + 6,250,000) x 1.25
+    'none' => [0.0, 14_625_000, 22_437_500],    // 11,700,000 x 1.25 and (11,200,000 + 500,000 + 6,250,000) x 1.25
+]);
+
 it('counts a started token as a whole token', function (): void {
     // 5 characters = 1.25 -> 2 text tokens; 15 % either way: 1.7 -> 1 and 2.3 -> 3.
     $estimate = (new CostCalculator)->estimate('abcde', '1024x1024', 'low', 0, pricingWith(['text_token_variance' => 0.15], $this->pricing()));
