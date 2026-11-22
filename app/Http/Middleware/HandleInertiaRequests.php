@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Credits;
+use App\Support\Money;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -44,6 +46,11 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
+            ],
+            // Exact decimal strings; the browser never does arithmetic on money.
+            'credit' => fn () => $request->user() === null ? null : [
+                'balance' => Money::toDecimal($request->user()->balance),
+                'available' => Money::toDecimal(app(Credits::class)->available($request->user())),
             ],
         ]);
     }

@@ -20,6 +20,7 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    credit: { balance: string; available: string } | null;
     ziggy: {
         location: string;
         url: string;
@@ -35,6 +36,7 @@ export interface User {
     email: string;
     avatar?: string;
     email_verified_at: string | null;
+    is_operator: boolean;
     created_at: string;
     updated_at: string;
 }
