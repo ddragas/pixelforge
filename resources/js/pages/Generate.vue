@@ -9,7 +9,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { usd } from '@/lib/money';
 import { type BreadcrumbItem } from '@/types';
 import type { Estimate, Generation } from '@/types/generation';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -88,6 +88,9 @@ watch(
 );
 
 onMounted(refreshEstimate);
+
+// Buying credits changes whether the image can be afforded, so the server is asked again.
+watch(() => usePage().props.credit?.available, refreshEstimate);
 
 function submit() {
     form.transform((data) => ({ ...data, reference_images: references.value })).post(route('generations.store'));
