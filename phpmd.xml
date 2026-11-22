@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<ruleset name="Pixelforge Studio"
+         xmlns="http://pmd.sf.net/ruleset/1.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
+         xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
+    <description>
+        Size, complexity and dead code. Rules that argue with how Laravel is
+        written (static facades, short names like $id) are left out, each
+        with its reason.
+    </description>
+
+    <rule ref="rulesets/codesize.xml"/>
+    <rule ref="rulesets/unusedcode.xml"/>
+    <rule ref="rulesets/design.xml">
+        <!-- Laravel's own classes bring the couplings; the count says nothing about ours. -->
+        <exclude name="CouplingBetweenObjects"/>
+    </rule>
+    <rule ref="rulesets/controversial.xml">
+        <!-- $request, $_ and friends are fine; camelCase is enforced below without this noise. -->
+        <exclude name="Superglobals"/>
+    </rule>
+    <rule ref="rulesets/naming.xml">
+        <!-- $id and $e are the names everyone expects. -->
+        <exclude name="ShortVariable"/>
+        <exclude name="LongVariable"/>
+        <!-- up() and down() are the names Laravel's migrations must have. -->
+        <exclude name="ShortMethodName"/>
+    </rule>
+    <rule ref="rulesets/cleancode.xml">
+        <!-- Facades and named constructors are Laravel's normal way of working. -->
+        <exclude name="StaticAccess"/>
+        <!-- "else" is sometimes the clearest way to say it. -->
+        <exclude name="ElseExpression"/>
+        <!-- Boolean flags are used for named options such as report: false. -->
+        <exclude name="BooleanArgumentFlag"/>
+        <exclude name="MissingImport"/>
+    </rule>
+</ruleset>

@@ -1,0 +1,53 @@
+# Which part of the application may depend on which.
+# The arrows point one way: HTTP and jobs call the services, the services
+# use the Pixelforge layer and the models, and nothing points back up.
+deptrac:
+  paths:
+    - ./app
+  layers:
+    - name: Http
+      collectors:
+        - type: classLike
+          value: ^App\\Http\\.*
+    - name: Console
+      collectors:
+        - type: classLike
+          value: ^App\\Console\\.*
+    - name: Jobs
+      collectors:
+        - type: classLike
+          value: ^App\\Jobs\\.*
+    - name: Services
+      collectors:
+        - type: classLike
+          value: ^App\\Services\\.*
+    - name: Pixelforge
+      collectors:
+        - type: classLike
+          value: ^App\\Pixelforge\\.*
+    - name: Models
+      collectors:
+        - type: classLike
+          value: ^App\\Models\\.*
+    - name: Enums
+      collectors:
+        - type: classLike
+          value: ^App\\Enums\\.*
+    - name: Support
+      collectors:
+        - type: classLike
+          value: ^App\\Support\\.*
+    - name: Providers
+      collectors:
+        - type: classLike
+          value: ^App\\Providers\\.*
+  ruleset:
+    Http: [Services, Pixelforge, Jobs, Models, Enums, Support]
+    Console: [Services, Pixelforge, Models, Enums]
+    Jobs: [Services, Pixelforge, Models, Enums]
+    Services: [Pixelforge, Models, Enums, Support]
+    Pixelforge: [Support]
+    Models: [Enums]
+    Enums: []
+    Support: []
+    Providers: []

@@ -31,7 +31,7 @@ function queriesFor(Closure $request): int
 
 function finished(User $user, int $count): void
 {
-    Generation::factory()->for($user)->count($count)->sequence(fn ($sequence) => ['provider_id' => 'gen_'.$user->id.'_'.$sequence->index.'_'.uniqid()])->create([
+    Generation::factory()->for($user)->count($count)->sequence(fn ($sequence): array => ['provider_id' => 'gen_'.$user->id.'_'.$sequence->index.'_'.uniqid()])->create([
         'status' => GenerationStatus::Succeeded,
         'provider_cost' => 62_790_000,
         'charged' => 78_487_500,
@@ -40,7 +40,7 @@ function finished(User $user, int $count): void
     ]);
 }
 
-it('opens the history page with the same number of queries for one image as for a full page of them', function () {
+it('opens the history page with the same number of queries for one image as for a full page of them', function (): void {
     $few = User::factory()->create();
     $many = User::factory()->create();
     finished($few, 1);
@@ -52,7 +52,7 @@ it('opens the history page with the same number of queries for one image as for 
     expect($forMany)->toBe($forFew)->toBeLessThanOrEqual(8);
 });
 
-it('builds the operators\' report with the same number of queries however many users and images there are', function () {
+it('builds the operators\' report with the same number of queries however many users and images there are', function (): void {
     $this->setUpPixelforge();
     Http::fake(['*/v1/usage*' => Http::response(['object' => 'usage', 'data' => []])]);
     $operator = User::factory()->create(['is_operator' => true]);
@@ -68,7 +68,7 @@ it('builds the operators\' report with the same number of queries however many u
     expect($large)->toBe($small);
 });
 
-it('answers a webhook without calling Pixelforge and leaves the work to the queue', function () {
+it('answers a webhook without calling Pixelforge and leaves the work to the queue', function (): void {
     $this->setUpPixelforge();
     Http::fake();
     Queue::fake();
@@ -82,7 +82,7 @@ it('answers a webhook without calling Pixelforge and leaves the work to the queu
     expect($queries)->toBeLessThanOrEqual(2);
 });
 
-it('prices ten thousand requests in well under a second', function () {
+it('prices ten thousand requests in well under a second', function (): void {
     $calculator = new CostCalculator;
     $pricing = Pricing::fromResponse($this->pricing());
     $prompt = str_repeat('A lighthouse on a cliff at dawn. ', 100);
@@ -96,7 +96,7 @@ it('prices ten thousand requests in well under a second', function () {
     expect((hrtime(true) - $started) / 1e9)->toBeLessThan(1.0);
 });
 
-it('does not ask Pixelforge for its prices more than once a minute', function () {
+it('does not ask Pixelforge for its prices more than once a minute', function (): void {
     $this->setUpPixelforge();
     $this->fakePricing();
     $user = User::factory()->create(['balance' => 5_000_000_000]);

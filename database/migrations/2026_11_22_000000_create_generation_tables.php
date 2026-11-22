@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table): void {
             $table->bigInteger('balance')->default(0);
             $table->boolean('is_operator')->default(false);
         });
 
-        Schema::create('generations', function (Blueprint $table) {
+        Schema::create('generations', function (Blueprint $table): void {
             // Our own id. It is also the Idempotency-Key and the metadata we send to Pixelforge.
             $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -58,7 +58,7 @@ return new class extends Migration
             $table->index('completed_at');
         });
 
-        Schema::create('webhook_events', function (Blueprint $table) {
+        Schema::create('webhook_events', function (Blueprint $table): void {
             // Pixelforge's event id. Being the primary key is what makes a second delivery a no-op.
             $table->string('id')->primary();
             $table->string('type');
@@ -67,7 +67,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('credit_transactions', function (Blueprint $table) {
+        Schema::create('credit_transactions', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('type');
@@ -86,7 +86,7 @@ return new class extends Migration
         Schema::dropIfExists('webhook_events');
         Schema::dropIfExists('generations');
 
-        Schema::table('users', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table): void {
             $table->dropColumn(['balance', 'is_operator']);
         });
     }

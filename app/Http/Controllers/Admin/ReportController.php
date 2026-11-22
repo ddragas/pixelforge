@@ -8,9 +8,8 @@ use App\Models\Generation;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\PixelforgeException;
 use App\Support\Money;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,9 +21,9 @@ use Inertia\Response;
  */
 class ReportController extends Controller
 {
-    public function __invoke(Request $request, PixelforgeClient $pixelforge): Response
+    public function __invoke(PixelforgeClient $pixelforge): Response
     {
-        $end = Carbon::now('UTC')->startOfDay();
+        $end = Date::now('UTC')->startOfDay();
         $start = $end->copy()->subDays(29);
 
         $rows = Generation::query()
@@ -65,7 +64,7 @@ class ReportController extends Controller
                 'reported_generations' => $theirs['generations'] ?? null,
                 'reported_cost' => $reportedCost === null ? null : Money::toDecimal($reportedCost),
                 'matches' => $reportedCost === null ? null : $reportedCost === $providerCost && (int) $theirs['generations'] === $ours->count(),
-                'users' => $ours->groupBy('user_id')->map(fn ($generations) => [
+                'users' => $ours->groupBy('user_id')->map(fn ($generations): array => [
                     'name' => $generations->first()->user->name,
                     'email' => $generations->first()->user->email,
                     'generations' => $generations->count(),

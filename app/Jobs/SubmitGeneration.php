@@ -73,10 +73,14 @@ class SubmitGeneration implements ShouldQueue
         $lifecycle->apply($remote, $generation);
     }
 
-    /** Called when the time to submit has run out. */
+    /**
+     * Called when the time to submit has run out.
+     *
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter") The signature is Laravel's.
+     */
     public function failed(?Throwable $exception): void
     {
-        app(GenerationLifecycle::class)->abandon(
+        resolve(GenerationLifecycle::class)->abandon(
             $this->generation,
             'provider_unavailable',
             'The image service was too busy to accept this request. You were not charged; please try again.',

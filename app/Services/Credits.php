@@ -16,7 +16,7 @@ class Credits
     /** A fake purchase: credit appears, no payment is taken. */
     public function purchase(User $user, int $amount): void
     {
-        DB::transaction(function () use ($user, $amount) {
+        DB::transaction(function () use ($user, $amount): void {
             $this->move($this->lock($user), CreditTransaction::PURCHASE, $amount);
         });
     }

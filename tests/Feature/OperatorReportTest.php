@@ -6,7 +6,7 @@ use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
 use Tests\Support\Pixelforge;
@@ -20,7 +20,7 @@ class OperatorReportTest extends TestCase
     {
         parent::setUp();
         $this->setUpPixelforge();
-        Carbon::setTestNow('2026-11-05 10:00:00');
+        Date::setTestNow('2026-11-05 10:00:00');
     }
 
     public function test_it_shows_charges_provider_cost_and_profit_per_day_and_compares_with_pixelforge(): void
@@ -41,7 +41,7 @@ class OperatorReportTest extends TestCase
             ['date' => '2026-11-04', 'generations' => 1, 'cost_usd' => '0.062790000'],
         ]])]);
 
-        $this->actingAs($operator)->get('/admin/report')->assertInertia(fn (AssertableInertia $page) => $page
+        $this->actingAs($operator)->get('/admin/report')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('admin/Report')
             ->has('days', 1)
             ->where('days.0.date', '2026-11-04')
@@ -67,7 +67,7 @@ class OperatorReportTest extends TestCase
             ['date' => '2026-11-04', 'generations' => 2, 'cost_usd' => '0.125580000'],
         ]])]);
 
-        $this->actingAs($operator)->get('/admin/report')->assertInertia(fn (AssertableInertia $page) => $page->where('days.0.matches', false));
+        $this->actingAs($operator)->get('/admin/report')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('days.0.matches', false));
     }
 
     public function test_ordinary_users_cannot_open_it(): void

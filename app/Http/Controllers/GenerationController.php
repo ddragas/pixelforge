@@ -9,6 +9,7 @@ use App\Jobs\SubmitGeneration;
 use App\Pixelforge\CostCalculator;
 use App\Pixelforge\Estimate;
 use App\Pixelforge\PixelforgeClient;
+use App\Pixelforge\Pricing;
 use App\Services\Credits;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
@@ -22,16 +23,16 @@ use Inertia\Response;
 class GenerationController extends Controller
 {
     public function __construct(
-        private PixelforgeClient $pixelforge,
-        private CostCalculator $calculator,
-        private Credits $credits,
+        private readonly PixelforgeClient $pixelforge,
+        private readonly CostCalculator $calculator,
+        private readonly Credits $credits,
     ) {}
 
     /** The page with the form. */
     public function create(Request $request): Response
     {
         // Fetch the prices now, so the first price the user sees does not wait for Pixelforge.
-        rescue(fn () => $this->pixelforge->pricing(), report: false);
+        rescue(fn (): Pricing => $this->pixelforge->pricing(), report: false);
 
         return Inertia::render('Generate', [
             'sizes' => config('pixelforge.sizes'),
@@ -86,7 +87,7 @@ class GenerationController extends Controller
             ]);
         });
 
-        SubmitGeneration::dispatch($generation);
+        dispatch(new SubmitGeneration($generation));
 
         return to_route('generations.index');
     }

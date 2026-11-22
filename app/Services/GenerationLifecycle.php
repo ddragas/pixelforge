@@ -6,6 +6,7 @@ use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Pixelforge\CostCalculator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,8 +21,8 @@ use Illuminate\Support\Facades\DB;
 class GenerationLifecycle
 {
     public function __construct(
-        private CostCalculator $calculator,
-        private Credits $credits,
+        private readonly CostCalculator $calculator,
+        private readonly Credits $credits,
     ) {}
 
     /**
@@ -32,10 +33,10 @@ class GenerationLifecycle
      */
     public function apply(array $remote, ?Generation $known = null): ?Generation
     {
-        return DB::transaction(function () use ($remote, $known) {
+        return DB::transaction(function () use ($remote, $known): ?Generation {
             $generation = $this->findAndLock($remote, $known);
 
-            if ($generation === null) {
+            if (! $generation instanceof Generation) {
                 return null;
             }
 
@@ -76,7 +77,7 @@ class GenerationLifecycle
      */
     public function abandon(Generation $generation, string $code, string $message): void
     {
-        DB::transaction(function () use ($generation, $code, $message) {
+        DB::transaction(function () use ($generation, $code, $message): void {
             $generation = Generation::whereKey($generation->getKey())->lockForUpdate()->firstOrFail();
 
             if ($generation->status === GenerationStatus::Pending) {
@@ -140,6 +141,6 @@ class GenerationLifecycle
 
     private function time(?string $value): ?Carbon
     {
-        return $value === null ? null : Carbon::parse($value);
+        return $value === null ? null : Date::parse($value);
     }
 }

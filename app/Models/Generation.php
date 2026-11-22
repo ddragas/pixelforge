@@ -78,7 +78,7 @@ class Generation extends Model
      *
      * @param  Builder<Generation>  $query
      */
-    public function scopeUnfinished(Builder $query): void
+    protected function scopeUnfinished(Builder $query): void
     {
         $query->whereNotIn('status', [GenerationStatus::Succeeded, GenerationStatus::Failed]);
     }

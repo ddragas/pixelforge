@@ -33,9 +33,9 @@ class SubmitGenerationTest extends TestCase
     {
         Http::fake(['*/v1/generations' => Http::response($this->remoteGeneration('queued'), 202)]);
 
-        SubmitGeneration::dispatchSync($this->generation);
+        dispatch_sync(new SubmitGeneration($this->generation));
 
-        Http::assertSent(fn (Request $request) => $request->hasHeader('Idempotency-Key', $this->generation->id)
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Idempotency-Key', $this->generation->id)
             && $request['metadata'] === ['generation_id' => $this->generation->id]
             && $request['prompt'] === $this->generation->prompt);
 
@@ -56,7 +56,7 @@ class SubmitGenerationTest extends TestCase
         )]);
 
         $job = (new SubmitGeneration($this->generation))->withFakeQueueInteractions();
-        $job->handle(app(PixelforgeClient::class), app(GenerationLifecycle::class));
+        $job->handle(resolve(PixelforgeClient::class), resolve(GenerationLifecycle::class));
 
         $job->assertReleased(delay: 5);
         $this->assertSame(GenerationStatus::Pending, $this->generation->refresh()->status);
@@ -71,7 +71,7 @@ class SubmitGenerationTest extends TestCase
         )]);
 
         $job = (new SubmitGeneration($this->generation))->withFakeQueueInteractions();
-        $job->handle(app(PixelforgeClient::class), app(GenerationLifecycle::class));
+        $job->handle(resolve(PixelforgeClient::class), resolve(GenerationLifecycle::class));
 
         $job->assertReleased();
         $this->assertSame(GenerationStatus::Pending, $this->generation->refresh()->status);
@@ -84,7 +84,7 @@ class SubmitGenerationTest extends TestCase
             400,
         )]);
 
-        SubmitGeneration::dispatchSync($this->generation);
+        dispatch_sync(new SubmitGeneration($this->generation));
 
         $generation = $this->generation->refresh();
 
@@ -111,7 +111,7 @@ class SubmitGenerationTest extends TestCase
         Http::fake();
         $this->generation->update(['status' => GenerationStatus::Queued, 'provider_id' => 'gen_01TEST']);
 
-        SubmitGeneration::dispatchSync($this->generation);
+        dispatch_sync(new SubmitGeneration($this->generation));
 
         Http::assertNothingSent();
     }
@@ -123,7 +123,7 @@ class SubmitGenerationTest extends TestCase
             'metadata' => ['generation_id' => $this->generation->id],
         ]));
 
-        app(GenerationLifecycle::class)->apply($this->remoteGeneration('queued', [
+        resolve(GenerationLifecycle::class)->apply($this->remoteGeneration('queued', [
             'metadata' => ['generation_id' => $this->generation->id],
         ]));
 

@@ -15,7 +15,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class GenerationResource extends JsonResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     *
+     * @SuppressWarnings("PHPMD.UnusedFormalParameter") The signature is Laravel's.
+     */
     public function toArray(Request $request): array
     {
         return [

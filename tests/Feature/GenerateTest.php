@@ -117,7 +117,7 @@ class GenerateTest extends TestCase
         Generation::factory()->for($user)->queued()->create(['status' => GenerationStatus::Succeeded, 'charged' => 78_487_500, 'provider_cost' => 62_790_000, 'reserved' => 0]);
         Generation::factory()->create();
 
-        $this->actingAs($user)->get('/history')->assertInertia(fn (AssertableInertia $page) => $page
+        $this->actingAs($user)->get('/history')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('History')
             ->has('generations', 1)
             ->where('generations.0.status', 'succeeded')

@@ -48,9 +48,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             // Exact decimal strings; the browser never does arithmetic on money.
-            'credit' => fn () => $request->user() === null ? null : [
+            'credit' => fn (): ?array => $request->user() === null ? null : [
                 'balance' => Money::toDecimal($request->user()->balance),
-                'available' => Money::toDecimal(app(Credits::class)->available($request->user())),
+                'available' => Money::toDecimal(resolve(Credits::class)->available($request->user())),
             ],
         ]);
     }

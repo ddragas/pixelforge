@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\GenerationController;
@@ -8,11 +10,9 @@ use App\Http\Middleware\EnsureOperator;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::redirect('dashboard', '/generate')->name('dashboard');
 
     Route::get('generate', [GenerationController::class, 'create'])->name('generations.create');

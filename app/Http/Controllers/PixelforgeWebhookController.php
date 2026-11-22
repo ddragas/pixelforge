@@ -34,7 +34,7 @@ class PixelforgeWebhookController extends Controller
         ]) === 1;
 
         if ($firstTime) {
-            ProcessWebhookEvent::dispatch(WebhookEvent::query()->whereKey($event['id'])->firstOrFail());
+            dispatch(new ProcessWebhookEvent(WebhookEvent::query()->whereKey($event['id'])->firstOrFail()));
         }
 
         return response()->noContent();
