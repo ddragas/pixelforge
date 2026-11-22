@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Enums\GenerationStatus;
+use App\Events\GenerationFailed;
+use App\Events\GenerationSucceeded;
 use App\Models\Generation;
 use App\Pixelforge\CostCalculator;
+use App\Repositories\GenerationRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +26,7 @@ class GenerationLifecycle
     public function __construct(
         private readonly CostCalculator $calculator,
         private readonly Credits $credits,
+        private readonly GenerationRepository $generations,
     ) {}
 
     /**
@@ -65,7 +69,7 @@ class GenerationLifecycle
                 $generation->started_at ??= $this->time($remote['started_at'] ?? null);
             }
 
-            $generation->save();
+            $this->generations->save($generation);
 
             return $generation;
         });
@@ -78,11 +82,11 @@ class GenerationLifecycle
     public function abandon(Generation $generation, string $code, string $message): void
     {
         DB::transaction(function () use ($generation, $code, $message): void {
-            $generation = Generation::whereKey($generation->getKey())->lockForUpdate()->firstOrFail();
+            $generation = $this->generations->lock($generation);
 
             if ($generation->status === GenerationStatus::Pending) {
                 $this->fail($generation, $code, $message);
-                $generation->save();
+                $this->generations->save($generation);
             }
         });
     }
@@ -105,6 +109,9 @@ class GenerationLifecycle
         ]);
 
         $this->credits->charge($generation, $charged);
+
+        // Told to the rest of the application only once it can no longer be undone.
+        DB::afterCommit(static fn () => event(new GenerationSucceeded($generation)));
     }
 
     /** A failed generation costs nothing; the credit set aside for it is freed. */
@@ -119,6 +126,8 @@ class GenerationLifecycle
             'reserved' => 0,
             'completed_at' => $this->time($completedAt) ?? now(),
         ]);
+
+        DB::afterCommit(static fn () => event(new GenerationFailed($generation)));
     }
 
     /**
@@ -131,12 +140,7 @@ class GenerationLifecycle
     {
         $ours = $known?->getKey() ?? $remote['metadata']['generation_id'] ?? null;
 
-        return Generation::query()
-            ->where(fn ($query) => $query
-                ->where('provider_id', $remote['id'])
-                ->when($ours, fn ($query) => $query->orWhere('id', $ours)))
-            ->lockForUpdate()
-            ->first();
+        return $this->generations->lockByProviderIdOrOwnId($remote['id'], $ours);
     }
 
     private function time(?string $value): ?Carbon

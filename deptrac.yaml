@@ -1,6 +1,8 @@
 # Which part of the application may depend on which.
-# The arrows point one way: HTTP and jobs call the services, the services
-# use the Pixelforge layer and the models, and nothing points back up.
+# The arrows point one way: HTTP and jobs call the services; the services
+# hold the logic; the repositories are the only ones that reach the database
+# and the Pixelforge layer the only one that reaches Pixelforge. Nothing
+# points back up.
 deptrac:
   paths:
     - ./app
@@ -21,6 +23,18 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Services\\.*
+    - name: Repositories
+      collectors:
+        - type: classLike
+          value: ^App\\Repositories\\.*
+    - name: Events
+      collectors:
+        - type: classLike
+          value: ^App\\Events\\.*
+    - name: Listeners
+      collectors:
+        - type: classLike
+          value: ^App\\Listeners\\.*
     - name: Pixelforge
       collectors:
         - type: classLike
@@ -42,10 +56,13 @@ deptrac:
         - type: classLike
           value: ^App\\Providers\\.*
   ruleset:
-    Http: [Services, Pixelforge, Jobs, Models, Enums, Support]
-    Console: [Services, Pixelforge, Models, Enums]
-    Jobs: [Services, Pixelforge, Models, Enums]
-    Services: [Pixelforge, Models, Enums, Support]
+    Http: [Services, Repositories, Pixelforge, Jobs, Models, Enums, Support]
+    Console: [Services, Repositories, Pixelforge, Models, Enums]
+    Jobs: [Services, Repositories, Pixelforge, Models, Enums]
+    Services: [Repositories, Pixelforge, Events, Models, Enums, Support]
+    Listeners: [Events, Models, Enums]
+    Events: [Models]
+    Repositories: [Models, Enums]
     Pixelforge: [Support]
     Models: [Enums]
     Enums: []

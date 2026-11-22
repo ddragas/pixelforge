@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\PixelforgeException;
+use App\Repositories\GenerationRepository;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
@@ -20,7 +20,10 @@ use Illuminate\Support\Facades\Date;
  */
 class OperatorReport
 {
-    public function __construct(private readonly PixelforgeClient $pixelforge) {}
+    public function __construct(
+        private readonly PixelforgeClient $pixelforge,
+        private readonly GenerationRepository $generations,
+    ) {}
 
     /**
      * Today and the 29 days before it.
@@ -32,11 +35,7 @@ class OperatorReport
         $end = Date::now('UTC')->startOfDay();
         $start = $end->copy()->subDays(29);
 
-        $rows = Generation::query()
-            ->with('user:id,name,email')
-            ->where('status', GenerationStatus::Succeeded)
-            ->where('completed_at', '>=', $start)
-            ->get(['id', 'user_id', 'provider_cost', 'charged', 'completed_at'])
+        $rows = $this->generations->succeededSince($start)
             ->groupBy(fn (Generation $generation): string => ($generation->completed_at ?? $generation->updated_at)->utc()->toDateString());
 
         try {

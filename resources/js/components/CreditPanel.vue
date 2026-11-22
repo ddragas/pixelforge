@@ -37,6 +37,7 @@ function buy(dollars: number) {
                 v-for="pack in packs"
                 :key="pack"
                 type="button"
+                :data-test="`buy-${pack}`"
                 :disabled="buying !== null"
                 class="rounded-lg bg-white/15 px-3 py-2 text-sm font-medium backdrop-blur transition hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50"
                 @click="buy(pack)"

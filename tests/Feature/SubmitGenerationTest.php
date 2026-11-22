@@ -6,7 +6,6 @@ use App\Enums\GenerationStatus;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Models\User;
-use App\Pixelforge\PixelforgeClient;
 use App\Services\GenerationLifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -56,7 +55,7 @@ class SubmitGenerationTest extends TestCase
         )]);
 
         $job = (new SubmitGeneration($this->generation))->withFakeQueueInteractions();
-        $job->handle(resolve(PixelforgeClient::class), resolve(GenerationLifecycle::class));
+        app()->call($job->handle(...));
 
         $job->assertReleased(delay: 5);
         $this->assertSame(GenerationStatus::Pending, $this->generation->refresh()->status);
@@ -71,7 +70,7 @@ class SubmitGenerationTest extends TestCase
         )]);
 
         $job = (new SubmitGeneration($this->generation))->withFakeQueueInteractions();
-        $job->handle(resolve(PixelforgeClient::class), resolve(GenerationLifecycle::class));
+        app()->call($job->handle(...));
 
         $job->assertReleased();
         $this->assertSame(GenerationStatus::Pending, $this->generation->refresh()->status);

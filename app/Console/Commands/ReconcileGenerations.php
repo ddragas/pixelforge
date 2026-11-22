@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\PixelforgeException;
+use App\Repositories\GenerationRepository;
 use App\Services\GenerationLifecycle;
 use Illuminate\Console\Command;
 
@@ -22,16 +22,10 @@ class ReconcileGenerations extends Command
 
     protected $description = 'Ask Pixelforge about generations we have not heard about lately';
 
-    public function handle(PixelforgeClient $pixelforge, GenerationLifecycle $lifecycle): int
+    public function handle(PixelforgeClient $pixelforge, GenerationLifecycle $lifecycle, GenerationRepository $generations): int
     {
         // Few per run: these requests count towards the 60 a minute limit that users' own requests share.
-        $stale = Generation::query()
-            ->whereIn('status', [GenerationStatus::Queued, GenerationStatus::Processing])
-            ->whereNotNull('provider_id')
-            ->where('checked_at', '<', now()->subSeconds((int) $this->option('older-than')))
-            ->oldest('checked_at')
-            ->limit(15)
-            ->get();
+        $stale = $generations->stale((int) $this->option('older-than'), limit: 15);
 
         foreach ($stale as $generation) {
             try {

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Pixelforge\CostCalculator;
 use App\Pixelforge\Estimate;
 use App\Pixelforge\PixelforgeClient;
+use App\Repositories\GenerationRepository;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,6 +23,7 @@ class GenerationOrders
         private readonly PixelforgeClient $pixelforge,
         private readonly CostCalculator $calculator,
         private readonly Credits $credits,
+        private readonly GenerationRepository $generations,
     ) {}
 
     /** What the order may cost, at Pixelforge's current prices. */
@@ -57,7 +59,7 @@ class GenerationOrders
                 throw new InsufficientCredit($estimate->highest);
             }
 
-            return $user->generations()->create([
+            return $this->generations->create($user, [
                 'prompt' => $prompt,
                 'size' => $size,
                 'quality' => $quality,

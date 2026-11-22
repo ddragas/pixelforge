@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Repositories\UserRepository;
 use Illuminate\Console\Command;
 
 class MakeOperator extends Command
@@ -11,17 +14,17 @@ class MakeOperator extends Command
 
     protected $description = 'Let a user see the operators\' report';
 
-    public function handle(): int
+    public function handle(UserRepository $users): int
     {
-        $user = User::where('email', $this->argument('email'))->first();
+        $user = $users->findByEmail((string) $this->argument('email'));
 
-        if ($user === null) {
+        if (! $user instanceof User) {
             $this->error('No user with that e-mail address.');
 
             return self::FAILURE;
         }
 
-        $user->forceFill(['is_operator' => true])->save();
+        $users->makeOperator($user);
         $this->info("{$user->email} can now open /admin/report.");
 
         return self::SUCCESS;

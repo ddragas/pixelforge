@@ -6,11 +6,11 @@ use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\PixelforgeException;
+use App\Repositories\GenerationRepository;
 use App\Services\GenerationLifecycle;
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -46,9 +46,9 @@ class SubmitGeneration implements ShouldQueue
         return max($retryAfter ?? 0, min(60, 2 ** min($attempt, 6)));
     }
 
-    public function handle(PixelforgeClient $pixelforge, GenerationLifecycle $lifecycle): void
+    public function handle(PixelforgeClient $pixelforge, GenerationLifecycle $lifecycle, GenerationRepository $generations): void
     {
-        $generation = $this->generation->refresh();
+        $generation = $generations->fresh($this->generation);
 
         if ($generation->status !== GenerationStatus::Pending) {
             return;
@@ -71,10 +71,6 @@ class SubmitGeneration implements ShouldQueue
             }
 
             $lifecycle->abandon($generation, $exception->errorCode, $this->explain($exception));
-
-            if ($exception->errorCode === 'invalid_api_key') {
-                Log::critical('Pixelforge rejected our API key.');
-            }
 
             return;
         }

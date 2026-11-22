@@ -4,6 +4,7 @@ use App\Jobs\ProcessWebhookEvent;
 use App\Jobs\SubmitGeneration;
 use App\Models\CreditTransaction;
 use App\Pixelforge\PixelforgeClient;
+use App\Repositories\CreditTransactionRepository;
 use App\Services\Credits;
 use App\Services\GenerationLifecycle;
 use App\Support\Money;
@@ -28,7 +29,7 @@ arch('only the Pixelforge client talks HTTP')
 
 arch('the Pixelforge layer knows nothing about our models, requests or jobs')
     ->expect('App\Pixelforge')
-    ->not->toUse(['App\Models', 'App\Http', 'App\Jobs', 'App\Services']);
+    ->not->toUse(['App\Models', 'App\Http', 'App\Jobs', 'App\Services', 'App\Repositories']);
 
 arch('money helpers depend on nothing of ours')
     ->expect(Money::class)
@@ -41,7 +42,16 @@ arch('controllers do not change balances or statuses themselves')
 
 arch('the ledger is written in one place only')
     ->expect(CreditTransaction::class)
-    ->toOnlyBeUsedIn([Credits::class, 'App\Models']);
+    ->toOnlyBeUsedIn([Credits::class, CreditTransactionRepository::class, 'App\Models']);
+
+arch('repositories are named as repositories and know nothing above them')
+    ->expect('App\Repositories')
+    ->toHaveSuffix('Repository')
+    ->not->toUse(['App\Services', 'App\Http', 'App\Jobs', 'App\Pixelforge', 'App\Events', 'App\Listeners']);
+
+arch('listeners never touch money or statuses: those are settled before an event is announced')
+    ->expect('App\Listeners')
+    ->not->toUse(['App\Services', 'App\Repositories', 'App\Pixelforge']);
 
 arch('jobs can be queued')
     ->expect([SubmitGeneration::class, ProcessWebhookEvent::class])

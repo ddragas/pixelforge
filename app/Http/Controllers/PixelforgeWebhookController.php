@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\ProcessWebhookEvent;
 use App\Models\WebhookEvent;
+use App\Repositories\WebhookEventRepository;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -13,7 +14,7 @@ class PixelforgeWebhookController extends Controller
      * Check the signature, remember the event, answer straight away.
      * The work itself happens in a queued job.
      */
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, WebhookEventRepository $events): Response
     {
         $payload = $request->getContent();
 
@@ -23,18 +24,12 @@ class PixelforgeWebhookController extends Controller
 
         abort_unless(is_array($event) && isset($event['id'], $event['type']), 400, 'Not a Pixelforge event.');
 
-        // The event id is the primary key. A second delivery of the same event
-        // inserts nothing, so it is acknowledged and otherwise ignored.
-        $firstTime = WebhookEvent::insertOrIgnore([
-            'id' => $event['id'],
-            'type' => $event['type'],
-            'payload' => $payload,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]) === 1;
+        // A second delivery of the same event stores nothing, so it is
+        // acknowledged like the first and otherwise ignored.
+        $stored = $events->recordOnce($event['id'], $event['type'], $payload);
 
-        if ($firstTime) {
-            dispatch(new ProcessWebhookEvent(WebhookEvent::query()->whereKey($event['id'])->firstOrFail()));
+        if ($stored instanceof WebhookEvent) {
+            dispatch(new ProcessWebhookEvent($stored));
         }
 
         return response()->noContent();

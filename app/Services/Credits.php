@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\CreditTransaction;
 use App\Models\Generation;
 use App\Models\User;
+use App\Repositories\CreditTransactionRepository;
+use App\Repositories\GenerationRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,11 +16,17 @@ use Illuminate\Support\Facades\DB;
  */
 class Credits
 {
+    public function __construct(
+        private readonly UserRepository $users,
+        private readonly GenerationRepository $generations,
+        private readonly CreditTransactionRepository $ledger,
+    ) {}
+
     /** A fake purchase: credit appears, no payment is taken. */
     public function purchase(User $user, int $amount): void
     {
         DB::transaction(function () use ($user, $amount): void {
-            $this->move($this->lock($user), CreditTransaction::PURCHASE, $amount);
+            $this->move($this->users->lock($user), CreditTransaction::PURCHASE, $amount);
         });
     }
 
@@ -28,38 +37,31 @@ class Credits
      */
     public function charge(Generation $generation, int $amount): void
     {
-        $this->move($this->lock($generation->user_id), CreditTransaction::GENERATION, -$amount, $generation);
+        $this->move($this->users->lock($generation->user_id), CreditTransaction::GENERATION, -$amount, $generation);
     }
 
-    /**
-     * Balance minus what is set aside for generations still running.
-     *
-     * The balance is read from the database, not from the model in hand,
-     * which may have been loaded before the last purchase or charge.
-     */
+    public function balance(User $user): int
+    {
+        return $this->users->balance($user);
+    }
+
+    /** Balance minus what is set aside for generations still running. */
     public function available(User $user): int
     {
-        $balance = (int) User::query()->whereKey($user->getKey())->value('balance');
-
-        return $balance - (int) $user->generations()->unfinished()->sum('reserved');
+        return $this->users->balance($user) - $this->generations->reservedFor($user);
     }
 
-    /** Read the user afresh and hold their row until the transaction ends. */
-    public function lock(User|int $user): User
+    /** Hold the user's row until the transaction ends; see UserRepository::lock(). */
+    public function lock(User $user): User
     {
-        return User::query()->whereKey($user instanceof User ? $user->getKey() : $user)->lockForUpdate()->firstOrFail();
+        return $this->users->lock($user);
     }
 
     private function move(User $user, string $type, int $amount, ?Generation $generation = null): void
     {
         $user->balance += $amount;
-        $user->save();
 
-        $user->creditTransactions()->create([
-            'type' => $type,
-            'amount' => $amount,
-            'balance_after' => $user->balance,
-            'generation_id' => $generation?->getKey(),
-        ]);
+        $this->users->save($user);
+        $this->ledger->record($user, $type, $amount, $generation);
     }
 }

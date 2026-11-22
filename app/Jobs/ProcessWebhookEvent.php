@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WebhookEvent;
+use App\Repositories\WebhookEventRepository;
 use App\Services\GenerationLifecycle;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -21,7 +22,7 @@ class ProcessWebhookEvent implements ShouldQueue
 
     public function __construct(public WebhookEvent $event) {}
 
-    public function handle(GenerationLifecycle $lifecycle): void
+    public function handle(GenerationLifecycle $lifecycle, WebhookEventRepository $events): void
     {
         $generation = $this->event->payload['data']['object'] ?? null;
 
@@ -29,6 +30,6 @@ class ProcessWebhookEvent implements ShouldQueue
             $lifecycle->apply($generation);
         }
 
-        $this->event->update(['processed_at' => now()]);
+        $events->markProcessed($this->event);
     }
 }

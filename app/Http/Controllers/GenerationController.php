@@ -7,6 +7,7 @@ use App\Http\Resources\GenerationResource;
 use App\Jobs\SubmitGeneration;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\Pricing;
+use App\Repositories\GenerationRepository;
 use App\Services\GenerationOrders;
 use App\Services\InsufficientCredit;
 use App\Support\Money;
@@ -22,6 +23,7 @@ class GenerationController extends Controller
     public function __construct(
         private readonly PixelforgeClient $pixelforge,
         private readonly GenerationOrders $orders,
+        private readonly GenerationRepository $generations,
     ) {}
 
     /** The page with the form. */
@@ -37,7 +39,7 @@ class GenerationController extends Controller
             'maxPromptLength' => config('pixelforge.max_prompt_length'),
             'creditPacks' => config('pixelforge.credit_packs'),
             'markupPercent' => config('pixelforge.markup_percent'),
-            'recent' => GenerationResource::collection($this->currentUser($request)->generations()->latest()->limit(3)->get())->resolve(),
+            'recent' => GenerationResource::collection($this->generations->latestFor($this->currentUser($request), 3))->resolve(),
         ]);
     }
 
@@ -83,7 +85,7 @@ class GenerationController extends Controller
     /** History, with live status: the page asks again every few seconds while anything is running. */
     public function index(Request $request): Response
     {
-        $generations = $this->currentUser($request)->generations()->latest()->paginate(12);
+        $generations = $this->generations->pageFor($this->currentUser($request), 12);
 
         return Inertia::render('History', [
             'generations' => GenerationResource::collection($generations->items())->resolve(),
@@ -92,7 +94,7 @@ class GenerationController extends Controller
                 'last' => $generations->lastPage(),
                 'total' => $generations->total(),
             ],
-            'running' => $this->currentUser($request)->generations()->unfinished()->exists(),
+            'running' => $this->generations->hasUnfinished($this->currentUser($request)),
         ]);
     }
 }

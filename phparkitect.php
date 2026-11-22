@@ -29,6 +29,21 @@ return static function (Config $config): void {
             ->because('a class in the controllers folder is a controller'),
 
         Rule::allClasses()
+            ->that(new ResideInOneOfTheseNamespaces('App\Repositories'))
+            ->should(new HaveNameMatching('*Repository'))
+            ->because('a class in the repositories folder is a repository'),
+
+        Rule::allClasses()
+            ->that(new ResideInOneOfTheseNamespaces('App\Repositories'))
+            ->should(new NotDependsOnTheseNamespaces(['App\Services', 'App\Http', 'App\Jobs', 'App\Pixelforge', 'Inertia']))
+            ->because('a repository fetches and stores; it decides nothing'),
+
+        Rule::allClasses()
+            ->that(new ResideInOneOfTheseNamespaces('App\Events'))
+            ->should(new IsFinal)
+            ->because('an event is a plain statement of what happened'),
+
+        Rule::allClasses()
             ->that(new ResideInOneOfTheseNamespaces('App\Jobs'))
             ->should(new Implement('Illuminate\Contracts\Queue\ShouldQueue'))
             ->because('every job runs on the queue, never inside a web request'),
@@ -64,7 +79,7 @@ return static function (Config $config): void {
             ->because('the Pixelforge layer only knows Pixelforge: no database, no requests, no jobs'),
 
         Rule::allClasses()
-            ->that(new ResideInOneOfTheseNamespaces('App\Models', 'App\Services', 'App\Pixelforge', 'App\Support'))
+            ->that(new ResideInOneOfTheseNamespaces('App\Models', 'App\Services', 'App\Repositories', 'App\Pixelforge', 'App\Support', 'App\Events', 'App\Listeners'))
             ->should(new NotDependsOnTheseNamespaces(['App\Http', 'Inertia']))
             ->because('nothing below the HTTP layer knows about requests, responses or pages'),
     );
