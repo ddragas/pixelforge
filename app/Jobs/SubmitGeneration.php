@@ -37,6 +37,15 @@ class SubmitGeneration implements ShouldQueue
         return $this->generation->created_at->copy()->addMinutes((int) config('pixelforge.submit_within_minutes'));
     }
 
+    /**
+     * 2, 4, 8, 16, 32 seconds, then a minute at most; never less than
+     * Pixelforge asked for in its Retry-After header.
+     */
+    public static function secondsToWait(int $attempt, ?int $retryAfter): int
+    {
+        return max($retryAfter ?? 0, min(60, 2 ** min($attempt, 6)));
+    }
+
     public function handle(PixelforgeClient $pixelforge, GenerationLifecycle $lifecycle): void
     {
         $generation = $this->generation->refresh();
@@ -56,7 +65,7 @@ class SubmitGeneration implements ShouldQueue
         } catch (PixelforgeException $exception) {
             if ($exception->isTransient()) {
                 // Wait as long as we are told, and a little longer each time.
-                $this->release(max($exception->retryAfter ?? 0, min(60, 2 ** min($this->attempts(), 6))));
+                $this->release(self::secondsToWait($this->attempts(), $exception->retryAfter));
 
                 return;
             }

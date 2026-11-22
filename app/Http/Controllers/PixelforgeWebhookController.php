@@ -57,7 +57,7 @@ class PixelforgeWebhookController extends Controller
         $timestamp = (int) ($parts['t'] ?? 0);
         $secret = (string) config('pixelforge.webhook_secret');
 
-        if ($secret === '' || abs(time() - $timestamp) > config('pixelforge.webhook_tolerance')) {
+        if ($secret === '' || abs(now()->getTimestamp() - $timestamp) > config('pixelforge.webhook_tolerance')) {
             return false;
         }
 

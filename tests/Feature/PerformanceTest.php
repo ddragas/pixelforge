@@ -94,7 +94,7 @@ it('prices ten thousand requests in well under a second', function (): void {
     }
 
     expect((hrtime(true) - $started) / 1e9)->toBeLessThan(1.0);
-});
+})->group('timing'); // Left out when coverage is being measured, which slows everything several times over.
 
 it('does not ask Pixelforge for its prices more than once a minute', function (): void {
     $this->setUpPixelforge();
