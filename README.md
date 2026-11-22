@@ -128,7 +128,7 @@ composer test:load       # webhook storm against the running app
 | Mutation | `composer test:mutation` | 85.5 % of mutations to our own code are caught. Most of the rest are equivalent: an `(int)` cast on a value that is already an integer. |
 | Load | `tests/Load/webhook-storm.php` | See below. |
 
-The feature tests run on SQLite in memory by default, for speed, and the pipeline runs them again on PostgreSQL.
+Every test runs on PostgreSQL, the database the application runs on: the tests use a separate `pixelforge_test` database on the server named in `.env`, locally and in the pipeline.
 
 ### The load test
 

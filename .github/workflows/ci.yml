@@ -24,12 +24,8 @@ jobs:
       - run: composer audit --abandoned=report
 
   tests:
-    name: Tests on ${{ matrix.database }}
+    name: Tests on PostgreSQL
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        database: [sqlite, pgsql]
     services:
       postgres:
         image: postgres:17-alpine
@@ -42,10 +38,8 @@ jobs:
           --health-cmd "pg_isready -U pixelforge"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DB_CONNECTION: ${{ matrix.database }}
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_DATABASE: ${{ matrix.database == 'sqlite' && ':memory:' || 'pixelforge_test' }}
       DB_USERNAME: pixelforge
       DB_PASSWORD: pixelforge
     steps:
@@ -61,6 +55,22 @@ jobs:
   browser:
     name: Browser tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: pixelforge_test
+          POSTGRES_USER: pixelforge
+          POSTGRES_PASSWORD: pixelforge
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pixelforge"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: pixelforge
+      DB_PASSWORD: pixelforge
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -82,6 +92,22 @@ jobs:
   mutation:
     name: Mutation tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: pixelforge_test
+          POSTGRES_USER: pixelforge
+          POSTGRES_PASSWORD: pixelforge
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pixelforge"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: pixelforge
+      DB_PASSWORD: pixelforge
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
