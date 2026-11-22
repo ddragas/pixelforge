@@ -5,7 +5,6 @@ use App\Http\Controllers\CreditController;
 use App\Http\Controllers\GenerationController;
 use App\Http\Controllers\PixelforgeWebhookController;
 use App\Http\Middleware\EnsureOperator;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -26,10 +25,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/report', ReportController::class)->middleware(EnsureOperator::class)->name('admin.report');
 });
 
-// Pixelforge has no session and no CSRF token; its signature is what is checked.
-Route::post('webhooks/pixelforge', PixelforgeWebhookController::class)
-    ->withoutMiddleware(ValidateCsrfToken::class)
-    ->name('webhooks.pixelforge');
+// Called by Pixelforge, not by a browser: exempt from CSRF in bootstrap/app.php, verified by signature.
+Route::post('webhooks/pixelforge', PixelforgeWebhookController::class)->name('webhooks.pixelforge');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

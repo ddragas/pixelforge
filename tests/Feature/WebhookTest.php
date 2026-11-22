@@ -133,6 +133,14 @@ class WebhookTest extends TestCase
         $this->assertSame(GenerationStatus::Queued, $this->generation->refresh()->status);
     }
 
+    public function test_the_webhook_is_reachable_without_a_csrf_token(): void
+    {
+        // Tests normally run with CSRF checking off, which would hide a webhook that browsers' rules block.
+        $this->withMiddleware();
+
+        $this->deliverWebhook('evt_1', 'generation.succeeded', $this->remoteGeneration('succeeded'))->assertNoContent();
+    }
+
     public function test_the_dashboard_test_event_is_acknowledged(): void
     {
         $body = '{"id":"evt_ping","object":"event","type":"ping","created_at":"2026-11-04T14:03:29Z","data":{}}';
