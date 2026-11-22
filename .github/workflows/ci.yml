@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Style, static analysis, architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer lint
+      - run: composer analyse
+      - run: composer audit --abandoned=report
+
+  tests:
+    name: Tests on ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, pgsql]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: pixelforge_test
+          POSTGRES_USER: pixelforge
+          POSTGRES_PASSWORD: pixelforge
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pixelforge"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_CONNECTION: ${{ matrix.database }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: ${{ matrix.database == 'sqlite' && ':memory:' || 'pixelforge_test' }}
+      DB_USERNAME: pixelforge
+      DB_PASSWORD: pixelforge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: composer test
+
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: cp .env.example .env && php artisan key:generate
+      - run: composer test:browser
+
+  mutation:
+    name: Mutation tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: composer test:mutation

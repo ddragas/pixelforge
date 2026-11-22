@@ -28,6 +28,7 @@ use App\Models\WebhookEvent;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
 
 require __DIR__.'/../../vendor/autoload.php';
@@ -96,16 +97,14 @@ $statuses = [];
 $started = microtime(true);
 
 foreach (array_chunk($deliveries, $concurrency) as $batch) {
-    $responses = Http::pool(function (Pool $pool) use ($batch, $url, $secret): array {
-        return array_map(function (string $body) use ($pool, $url, $secret) {
-            $timestamp = time();
+    $responses = Http::pool(fn (Pool $pool): array => array_map(function (string $body) use ($pool, $url, $secret) {
+        $timestamp = time();
 
-            return $pool->withHeaders([
-                'Content-Type' => 'application/json',
-                'Pixelforge-Signature' => "t={$timestamp},v1=".hash_hmac('sha256', "{$timestamp}.{$body}", $secret),
-            ])->withBody($body, 'application/json')->timeout(30)->post($url);
-        }, $batch);
-    });
+        return $pool->withHeaders([
+            'Content-Type' => 'application/json',
+            'Pixelforge-Signature' => "t={$timestamp},v1=".hash_hmac('sha256', "{$timestamp}.{$body}", $secret),
+        ])->withBody($body, 'application/json')->timeout(30)->post($url);
+    }, $batch));
 
     foreach ($responses as $response) {
         $status = $response instanceof Throwable ? 0 : $response->status();
@@ -130,7 +129,7 @@ $deadline = time() + 180;
 $waiting = fn (): int => WebhookEvent::query()->where('id', 'like', "evt_{$run}_%")->whereNull('processed_at')->count();
 
 while ($waiting() > 0 && time() < $deadline) {
-    usleep(500_000);
+    Sleep::usleep(500_000);
 }
 
 printf("Queue drained %.1f s after the first delivery.\n", microtime(true) - $started);

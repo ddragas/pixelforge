@@ -19,7 +19,6 @@
         "deptrac/deptrac": "^4.7",
         "driftingly/rector-laravel": "^2.7",
         "fakerphp/faker": "^1.23",
-        "infection/infection": "*",
         "larastan/larastan": "^3.15",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.18",
@@ -64,6 +63,31 @@
         "dev": [
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite"
+        ],
+        "lint": [
+            "pint --test",
+            "rector process --dry-run --no-progress-bar"
+        ],
+        "fix": [
+            "rector process --no-progress-bar",
+            "pint"
+        ],
+        "analyse": [
+            "phpstan analyse --memory-limit=1G --no-progress",
+            "phpmd analyze app --format text --ruleset phpmd.xml",
+            "deptrac analyse --no-progress",
+            "phparkitect check"
+        ],
+        "test": "pest --exclude-testsuite=Browser",
+        "test:browser": "pest --testsuite=Browser",
+        "test:mutation": "pest --mutate --everything --covered-only --parallel --exclude-testsuite=Browser --exclude-group=timing --path=app --ignore=app/Http/Controllers/Auth,app/Http/Controllers/Settings,app/Http/Requests/Auth,app/Http/Requests/Settings --min=80",
+        "test:load": "@php tests/Load/webhook-storm.php",
+        "check": [
+            "@lint",
+            "@analyse",
+            "@composer audit --abandoned=report",
+            "@test",
+            "@test:browser"
         ]
     },
     "extra": {
@@ -77,10 +101,20 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true,
-            "infection/extension-installer": true
-        }
+            "php-http/discovery": true
+        },
+        "process-timeout": 1800
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts-descriptions": {
+        "lint": "Code style (Pint) and modernisation (Rector), without changing anything",
+        "fix": "Apply Rector and Pint",
+        "analyse": "PHPStan level 8, PHPMD, Deptrac layers, PHPArkitect rules",
+        "test": "Unit, feature, architecture, security, regression and performance tests",
+        "test:browser": "The user journey in a real browser (needs npm run build)",
+        "test:mutation": "Mutation testing of our own code (needs a coverage driver)",
+        "test:load": "Webhook storm against the running app, then checks the books",
+        "check": "Everything the pipeline runs, except mutation testing"
+    }
 }
