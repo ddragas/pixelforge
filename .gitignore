@@ -26,3 +26,5 @@ yarn-error.log
 /tunnel.sh
 /run-dev.sh
 /tests/Browser/Screenshots
+/.deptrac.cache
+/.phparkitect.cache
