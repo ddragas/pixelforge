@@ -104,6 +104,39 @@ php artisan app:make-operator you@example.com
 
 Use one Pixelforge API key per environment. Each key has its own webhook URL, signing secret and usage report, and the operators' report compares against the usage of the key it runs with.
 
+### With Docker (Laravel Sail)
+
+If you would rather not install PHP, PostgreSQL and Redis yourself, `compose.yaml` starts all three:
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$(pwd):/var/www/html" -w /var/www/html \
+    laravelsail/php84-composer:latest composer install --ignore-platform-reqs
+cp .env.example .env
+# in .env: DB_HOST=pgsql, REDIS_HOST=redis, and the two PIXELFORGE_* values
+
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail npm install && ./vendor/bin/sail npm run build
+
+./vendor/bin/sail artisan queue:work     # in its own terminal
+./vendor/bin/sail artisan schedule:work  # in its own terminal
+```
+
+The site is then on http://localhost, or on the port in `APP_PORT`. The browser tests need Playwright, which the Sail image does not include; run the rest with `./vendor/bin/sail artisan test --exclude-testsuite=Browser`.
+
+### Deploying
+
+The web server alone is not enough. Three things have to be running, or generations stay on "Waiting to be sent":
+
+| What | Why |
+| --- | --- |
+| A queue worker, `php artisan queue:work` | Submitting to Pixelforge and processing webhooks both happen in queued jobs. |
+| The scheduler, `php artisan schedule:run` every minute | It asks Pixelforge about any generation that has been quiet for a minute, which is what covers a lost webhook. |
+| `PIXELFORGE_API_KEY` and `PIXELFORGE_WEBHOOK_SECRET` | From the Pixelforge key made for this environment. With a missing or wrong key every request is refused, the user is told so and is not charged. |
+
+On Laravel Cloud that is: App cluster, turn on Scheduler, add a background process of type Queue worker; the two variables go under Settings, Custom environment variables; then deploy. In the Pixelforge dashboard, under Webhooks, set that key's endpoint to `https://<your-domain>/webhooks/pixelforge`. "Send test event" there should come back with 204.
+
 ## Tests
 
 ```bash
